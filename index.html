@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Happy Diwali – Junaid</title>
+<meta name="theme-color" content="#0d0820">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yatra+One&family=Hind:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{
+    height:100svh;overflow:hidden;
+    background:radial-gradient(ellipse at 50% 100%,#4a1d5c 0%,#1e1040 45%,#0d0820 100%);
+    color:#fff4dc;font-family:"Hind",system-ui,sans-serif;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    -webkit-tap-highlight-color:transparent;touch-action:none;user-select:none;
+  }
+  canvas{position:fixed;inset:0;width:100%;height:100%}
+  main{position:relative;z-index:2;padding:1.5rem;pointer-events:none}
+  h1,.wish,.name,.hint{opacity:0}
+  h1{
+    font-family:"Yatra One",serif;font-weight:400;
+    font-size:clamp(3rem,15vw,6rem);line-height:1.1;
+    background:linear-gradient(90deg,#ffb532,#ff6a3d,#ff4d8d,#ffb532);
+    background-size:300% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 18px rgba(255,150,50,.5));
+  }
+  .wish{margin:1rem auto 0;max-width:24ch;font-size:clamp(1.15rem,5vw,1.6rem);line-height:1.5}
+  .name{
+    margin-top:1.6rem;font-family:"Yatra One",serif;
+    font-size:clamp(2.2rem,10vw,3.6rem);color:#ffd27a;text-shadow:0 0 22px rgba(255,181,50,.8);
+  }
+  .name small{display:block;font-family:"Hind",sans-serif;font-size:1.05rem;color:#ff7fae;text-shadow:none;margin-bottom:.2rem}
+  .hint{position:fixed;bottom:max(1.4rem,env(safe-area-inset-bottom));left:0;right:0;z-index:2;font-size:.95rem;pointer-events:none}
+
+  body.go h1{animation:shine 4s linear infinite, pop 1.2s cubic-bezier(.2,1.4,.4,1) both}
+  body.go .wish{animation:rise 1s .8s both}
+  body.go .name{animation:rise 1s 1.4s both, glow 2.4s 2.4s infinite ease-in-out}
+  body.go .hint{animation:rise 1s 2.4s both, pulse 2s 3.4s infinite}
+  @keyframes shine{to{background-position:300% 0}}
+  @keyframes pop{from{opacity:0;transform:scale(.4) rotate(-6deg)}to{opacity:1;transform:none}}
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  @keyframes glow{50%{text-shadow:0 0 38px rgba(255,181,50,1),0 0 8px rgba(255,255,255,.6)}}
+  @keyframes pulse{0%,100%{opacity:.8}50%{opacity:.25}}
+
+  /* Start screen */
+  #start{
+    position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;
+    background:radial-gradient(ellipse at 50% 100%,#4a1d5c 0%,#1e1040 45%,#0d0820 100%);
+    transition:opacity .8s;cursor:pointer;
+  }
+  #start.off{opacity:0;pointer-events:none}
+  #start .rk{font-size:4rem;animation:bob 1.4s infinite ease-in-out}
+  @keyframes bob{50%{transform:translateY(-14px) rotate(-8deg)}}
+  #start p{font-family:"Yatra One",serif;font-size:clamp(1.5rem,7vw,2.2rem);color:#ffd27a}
+  #start span{
+    font-size:1.1rem;color:#0d0820;background:#ffb532;border-radius:999px;padding:.75rem 1.8rem;font-weight:500;
+    animation:ring 1.6s infinite;
+  }
+  @keyframes ring{0%{box-shadow:0 0 0 0 rgba(255,181,50,.7)}100%{box-shadow:0 0 0 22px rgba(255,181,50,0)}}
+  @media (prefers-reduced-motion:reduce){body.go h1,body.go .name{animation-duration:.01s}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<main>
+  <h1>Happy<br>Diwali</h1>
+  <p class="wish">May your life be filled with light, joy and sweetness.</p>
+  <p class="name"><small>With love,</small>Junaid</p>
+</main>
+<p class="hint">Touch the screen to launch rockets 🚀</p>
+
+<div id="start"><div class="rk">🚀</div><p>A Diwali wish for you</p><span>Tap to start</span></div>
+
+<script>
+  var cv = document.getElementById("c"), ctx = cv.getContext("2d");
+  var W, H, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  function resize(){ W = innerWidth; H = innerHeight; cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
+  resize(); addEventListener("resize", resize);
+
+  /* ---------- Awaaz (browser khud banata hai) ---------- */
+  var AC = window.AudioContext || window.webkitAudioContext, actx = null, master = null, started = false;
+  function unlock(){
+    if(!AC) return Promise.resolve();
+    if(!actx){
+      actx = new AC();
+      var comp = actx.createDynamicsCompressor();
+      master = actx.createGain(); master.gain.value = .9;
+      master.connect(comp); comp.connect(actx.destination);
+      // iPhone/Safari ko jagane ke liye ek khamosh awaaz
+      var b = actx.createBuffer(1,1,22050), src = actx.createBufferSource();
+      src.buffer = b; src.connect(actx.destination); src.start(0);
+    }
+    return actx.state === "suspended" ? actx.resume().catch(function(){}) : Promise.resolve();
+  }
+  function noiseBuf(sec, curve, crackle){
+    var len = Math.floor(actx.sampleRate*sec), b = actx.createBuffer(1,len,actx.sampleRate), d = b.getChannelData(0);
+    for(var i=0;i<len;i++){
+      var e = Math.pow(1 - i/len, curve);
+      d[i] = (Math.random()*2-1) * e * (crackle ? (Math.random()<.07 ? 1 : .2) : 1);
+    }
+    return b;
+  }
+  function ok(){ return !!actx; }
+
+  // Rocket ki seeti
+  function whistle(dur){
+    if(!ok()) return;
+    var t = actx.currentTime;
+    var o = actx.createOscillator(), g = actx.createGain(), f = actx.createBiquadFilter();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(500, t);
+    o.frequency.exponentialRampToValueAtTime(2200, t + dur);
+    f.type = "bandpass"; f.Q.value = 6;
+    f.frequency.setValueAtTime(700, t); f.frequency.exponentialRampToValueAtTime(2600, t + dur);
+    g.gain.setValueAtTime(.0001, t);
+    g.gain.exponentialRampToValueAtTime(.12, t + .1);
+    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t + dur + .05);
+    // saath mein halki si fuss-fuss
+    var n = actx.createBufferSource(), nf = actx.createBiquadFilter(), ng = actx.createGain();
+    n.buffer = noiseBuf(dur, .5, false); nf.type = "highpass"; nf.frequency.value = 2500; ng.gain.value = .06;
+    n.connect(nf); nf.connect(ng); ng.connect(master); n.start(t);
+  }
+  // Dhamaka + chatak-chatak
+  function bang(){
+    if(!ok()) return;
+    var t = actx.currentTime;
+    var o = actx.createOscillator(), og = actx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(140 + Math.random()*50, t);
+    o.frequency.exponentialRampToValueAtTime(35, t + .3);
+    og.gain.setValueAtTime(1, t); og.gain.exponentialRampToValueAtTime(.001, t + .45);
+    o.connect(og); og.connect(master); o.start(t); o.stop(t + .5);
+    var b = actx.createBufferSource(), bf = actx.createBiquadFilter(), bg = actx.createGain();
+    b.buffer = noiseBuf(.25, 4, false); bf.type = "lowpass"; bf.frequency.value = 1200; bg.gain.value = .8;
+    b.connect(bf); bf.connect(bg); bg.connect(master); b.start(t);
+    var c = actx.createBufferSource(), cf = actx.createBiquadFilter(), cg = actx.createGain();
+    c.buffer = noiseBuf(1.1, 2.5, true); cf.type = "highpass"; cf.frequency.value = 1000; cg.gain.value = .7;
+    c.connect(cf); cf.connect(cg); cg.connect(master); c.start(t + .05);
+  }
+
+  /* ---------- Rockets aur fireworks ---------- */
+  var COLORS = ["#ffb532","#ff6a3d","#ff4d8d","#ffd27a","#7ee8ff","#b784ff","#8bff9c","#ffffff"];
+  var rand = function(a){ return a[Math.floor(Math.random()*a.length)]; };
+  var rockets = [], parts = [];
+
+  function launch(tx, ty){
+    var N = 50 + Math.random()*14, x0 = tx + (Math.random()-.5)*Math.min(160, W*.4);
+    rockets.push({x:x0, y:H+10, vx:(tx-x0)/N, vy:(ty-H-10)/N, n:N, i:0, c:rand(COLORS)});
+    whistle(N/60);
+  }
+
+  function explode(x, y, c){
+    bang();
+    var type = Math.floor(Math.random()*4), n = type===1 ? 48 : 80, c2 = rand(COLORS);
+    for(var i=0;i<n;i++){
+      var a = Math.PI*2*i/n + Math.random()*.15, sp, life = 1, g = .05, col = c;
+      if(type===0){ sp = 1.5 + Math.random()*4.4; if(Math.random()<.3) col = c2; }       // gol
+      if(type===1){ sp = 4.2; col = (i%2) ? c : c2; }                                    // ring
+      if(type===2){ sp = 1 + Math.random()*3.8; life = 1.6; g = .09; col = "#ffcc55"; }  // sunehri jharna
+      if(type===3){ sp = 1.5 + Math.random()*4.4; col = rand(COLORS); }                  // rangeen mix
+      parts.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:life,g:g,c:col,r:1.6+Math.random()*1.6,d:.012+Math.random()*.006});
+    }
+    // chhote chamakte sitare (twinkle)
+    for(var k=0;k<14;k++){
+      var a2 = Math.random()*6.283, s2 = Math.random()*3;
+      parts.push({x:x,y:y,vx:Math.cos(a2)*s2,vy:Math.sin(a2)*s2,life:1.4,g:.03,c:"#ffffff",r:1.2,d:.008,tw:true});
+    }
+    flash = .22;
+  }
+  var flash = 0;
+
+  /* ---------- Touch / click ---------- */
+  var lastTrail = 0;
+  addEventListener("pointerdown", function(e){
+    unlock();
+    if(!started) return;
+    launch(e.clientX, Math.min(e.clientY, H*.8));
+  });
+  addEventListener("pointermove", function(e){
+    if(!e.buttons || !started) return;
+    var now = performance.now(); if(now - lastTrail < 30) return; lastTrail = now;
+    parts.push({x:e.clientX,y:e.clientY,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,life:.7,g:.02,c:rand(COLORS),r:2,d:.02});
+  });
+
+  /* ---------- Start: ek tap ke baad awaaz aur show shuru ---------- */
+  var startEl = document.getElementById("start");
+  function begin(){
+    if(started) return;
+    started = true;
+    startEl.classList.add("off");
+    document.body.classList.add("go");
+    unlock().then(function(){
+      launch(W*.5, H*.25);                       // tap karte hi pehla rocket, awaaz ke saath
+      setTimeout(function(){ launch(W*.25, H*.3); }, 500);
+      setTimeout(function(){ launch(W*.75, H*.22); }, 900);
+      (function loop(){
+        launch(W*(.12+Math.random()*.76), H*(.12+Math.random()*.35));
+        setTimeout(loop, 1100 + Math.random()*1400);
+      })();
+    });
+  }
+  startEl.addEventListener("pointerdown", begin);
+
+  /* ---------- Draw ---------- */
+  function frame(){
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation = "lighter";
+
+    for(var i=rockets.length-1;i>=0;i--){
+      var r = rockets[i];
+      r.x += r.vx; r.y += r.vy; r.i++;
+      for(var k=0;k<2;k++) parts.push({x:r.x+(Math.random()-.5)*3,y:r.y,vx:(Math.random()-.5)*.8,vy:Math.random()*1.4,life:.6,g:.02,c:Math.random()<.5?"#ffb532":"#ff6a3d",r:1.6,d:.04});
+      ctx.globalAlpha = 1; ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(r.x,r.y,2.6,0,6.283); ctx.fill();
+      if(r.i >= r.n){ explode(r.x, r.y, r.c); rockets.splice(i,1); }
+    }
+    for(var j=parts.length-1;j>=0;j--){
+      var p = parts[j];
+      p.x += p.vx; p.y += p.vy; p.vy += p.g; p.vx *= .985; p.vy *= .985; p.life -= p.d;
+      if(p.life <= 0){ parts.splice(j,1); continue; }
+      var a = Math.min(1,p.life);
+      if(p.tw) a *= (Math.random()<.5 ? 1 : .2);
+      ctx.globalAlpha = a; ctx.fillStyle = p.c;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r*Math.min(1,p.life)+.4,0,6.283); ctx.fill();
+    }
+    if(flash > 0){
+      ctx.globalAlpha = flash; ctx.fillStyle = "#ff9a4a"; ctx.fillRect(0,0,W,H); flash *= .85; if(flash<.01) flash = 0;
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  }
+  frame();
+</script>
+</body>
+</html>
